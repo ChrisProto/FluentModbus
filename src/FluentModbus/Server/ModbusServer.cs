@@ -385,24 +385,35 @@ namespace FluentModbus
             }
         }
 
+        /// <summary>
+        /// Returns true if this Server has only one UnitIdentifier, and its value is zero.
+        /// </summary>
+        // TODO: Apollo3zehn: Should access to this list be locked?
+        //       It is checked from the ModbusTcpRequestHandler objects, which all run in different threads.
+        //       Do we support AddUnit and RemoveUnit after the Server has been started?
+        //       If so, then we should lock access to this list and also to the _*BufferMap Dictionaries.
+        //
+        //       Also, I am concerned that the list of UnitIdentifiers could get out of sync with the several buffer dictionaries.
+        //       These should be combined into a single list of UnitItem objects that contain both the unit identifier and the buffers.
+        public bool IsSingleZeroUnitMode => UnitIdentifiers.Count == 1 && UnitIdentifiers[0] == 0;
+
         private Span<byte> Find(byte unitIdentifier, Dictionary<byte, byte[]> map)
         {
-            if (unitIdentifier == 0)
+            // If we are in the SingleZeroUnitMode then we want the Unit Zero buffer
+            if (IsSingleZeroUnitMode)
+                unitIdentifier = 0;
+            else
             {
-                if (map.Count == 1)
-                    return map.First().Value;
-
-                else
+                // We are not in SingleZeroUnitMode, so we must not ask for Unit zero.
+                if (unitIdentifier == 0)
                     throw new ArgumentException(ErrorMessage.ModbusServer_ZeroUnitOverloadOnlyApplicableInSingleUnitMode);
             }
 
-            else
-            {
-                if (!map.TryGetValue(unitIdentifier, out var buffer))
-                    throw new KeyNotFoundException(ErrorMessage.ModbusServer_UnitIdentifierNotFound);
+            // Retrieve the buffer for the specified unitIdentifier (or zero)
+            if (!map.TryGetValue(unitIdentifier, out var buffer))
+                throw new KeyNotFoundException(ErrorMessage.ModbusServer_UnitIdentifierNotFound);
 
-                return buffer;
-            }
+            return buffer;
         }
 
         internal void OnRegistersChanged(byte unitIdentifier, int[] registers)

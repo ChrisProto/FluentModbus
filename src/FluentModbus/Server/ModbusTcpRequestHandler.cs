@@ -149,8 +149,8 @@ namespace FluentModbus
                             _bytesFollowing = FrameBuffer.Reader.ReadUInt16Reverse();              // 04-05  Length
                             var unitIdentifier = FrameBuffer.Reader.ReadByte();                    // 06     Unit Identifier
 
-                            if (_handleUnitIdentifiers)
-                                UnitIdentifier = unitIdentifier;
+                            //if (_handleUnitIdentifiers)   // Apollo3zehn: Is _handleUnitIdentifiers obsolete now?
+                            UnitIdentifier = unitIdentifier;
 
                             if (_protocolIdentifier != 0)
                             {
@@ -176,8 +176,9 @@ namespace FluentModbus
                 }
             }
 
-            // make sure that the incoming frame is actually adressed to this server
-            if (ModbusServer.UnitIdentifiers.Contains(UnitIdentifier))
+            // make sure that the incoming frame is actually addressed to this server
+            // If we have only one UnitIdentifier, and it is zero, then we accept all incoming messages
+            if (ModbusServer.IsSingleZeroUnitMode || ModbusServer.UnitIdentifiers.Contains(UnitIdentifier))
             {
                 LastRequest.Restart();
                 return true;
