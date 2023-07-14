@@ -14,13 +14,11 @@ namespace FluentModbus
         private ushort _protocolIdentifier;
         private ushort _bytesFollowing;
 
-        private bool _handleUnitIdentifiers;
-
         #endregion
 
         #region Constructors
 
-        public ModbusTcpRequestHandler(TcpClient tcpClient, ModbusTcpServer tcpServer, bool handleUnitIdentifiers = false /* For testing only */)
+        public ModbusTcpRequestHandler(TcpClient tcpClient, ModbusTcpServer tcpServer)
             : base(tcpServer, 260)
         {
             _tcpClient = tcpClient;
@@ -28,8 +26,6 @@ namespace FluentModbus
 
             DisplayName = ((IPEndPoint)_tcpClient.Client.RemoteEndPoint).Address.ToString();
             CancellationToken.Register(() => _networkStream.Close());
-
-            _handleUnitIdentifiers = handleUnitIdentifiers;
 
             base.Start();
         }
@@ -144,13 +140,10 @@ namespace FluentModbus
                             FrameBuffer.Reader.BaseStream.Seek(0, SeekOrigin.Begin);
 
                             // read MBAP header
-                            _transactionIdentifier = FrameBuffer.Reader.ReadUInt16Reverse();       // 00-01  Transaction Identifier
-                            _protocolIdentifier = FrameBuffer.Reader.ReadUInt16Reverse();          // 02-03  Protocol Identifier               
-                            _bytesFollowing = FrameBuffer.Reader.ReadUInt16Reverse();              // 04-05  Length
-                            var unitIdentifier = FrameBuffer.Reader.ReadByte();                    // 06     Unit Identifier
-
-                            //if (_handleUnitIdentifiers)   // Apollo3zehn: Is _handleUnitIdentifiers obsolete now?
-                            UnitIdentifier = unitIdentifier;
+                            _transactionIdentifier = FrameBuffer.Reader.ReadUInt16Reverse();   // 00-01  Transaction Identifier
+                            _protocolIdentifier = FrameBuffer.Reader.ReadUInt16Reverse();      // 02-03  Protocol Identifier               
+                            _bytesFollowing = FrameBuffer.Reader.ReadUInt16Reverse();          // 04-05  Length
+                            UnitIdentifier = FrameBuffer.Reader.ReadByte();                    // 06     Unit Identifier
 
                             if (_protocolIdentifier != 0)
                             {
